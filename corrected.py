@@ -92,7 +92,7 @@ class Ui_MainWindow(object):
         self.tableWidget.setItemDelegateForColumn(0, MyComboBoxDelegate(self.stock_combo_box))
 
 
-        self.pushButton.clicked.connect(self.submit_data)
+        # self.pushButton.clicked.connect(self.submit_data)
 
 
     def submit_data(self):
@@ -121,8 +121,11 @@ class Ui_MainWindow(object):
             quantity_modifier = -1
         else:
             # Neither radio button is checked
+            QtWidgets.QMessageBox.warning(None, "Error", "Please select an operation.")
             return
         
+         # Initialize existing_record
+        existing_record = None
 
                 # Check if the table invent exists
         cur.execute("SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'invent')")
@@ -166,6 +169,18 @@ class Ui_MainWindow(object):
             quantity = int(self.tableWidget.item(row, 1).text()) * quantity_modifier  # Adjust quantity
             buying_price = float(self.tableWidget.item(row, 2).text())
             selling_price = float(self.tableWidget.item(row, 3).text())
+
+
+             # Check if the stock item exists in invent table and has enough quantity for subtraction
+            if  quantity_modifier == -1:
+                cur.execute("SELECT id, quantity FROM invent WHERE stock = %s", (stock,))
+                existing_record = cur.fetchone()
+            if self.subtract_radio_button.isChecked() and (existing_record is None or existing_record[1] < abs(quantity)):
+                # QtWidgets.QMessageBox.warning(MainWindow, "Error", f"Not enough quantity of {stock} in inventory.")
+                QtWidgets.QMessageBox.warning(None, "Error", f"Not enough quantity of {stock} in inventory.")
+                continue  # Skip processing this row
+
+
 
              # Calculate profit
             profit = selling_price - buying_price
@@ -248,4 +263,10 @@ if __name__ == "__main__":
     ui = Ui_MainWindow()
     ui.setupUi(MainWindow)
     MainWindow.show()
+
+     # Connect the clicked signal of the pushButton to the submit_data method
+    # ui.pushButton.clicked.connect(lambda: ui.submit_data(MainWindow))
+    ui.pushButton.clicked.connect(ui.submit_data)
+
+
     sys.exit(app.exec_())
