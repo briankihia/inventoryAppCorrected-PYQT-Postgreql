@@ -94,6 +94,8 @@ class Ui_MainWindow(object):
 
         # self.pushButton.clicked.connect(self.submit_data)
 
+    
+
 
     def submit_data(self):
         rows = self.tableWidget.rowCount()
@@ -115,14 +117,18 @@ class Ui_MainWindow(object):
             transaction_type = "Addition"
             # For addition, keep the quantity positive
             quantity_modifier = 1
+            
         elif self.subtract_radio_button.isChecked():
             transaction_type = "Subtraction"
             # For subtraction, make the quantity negative
             quantity_modifier = -1
+            
         else:
             # Neither radio button is checked
             QtWidgets.QMessageBox.warning(None, "Error", "Please select an operation.")
             return
+        
+        
         
          # Initialize existing_record
         existing_record = None
@@ -243,6 +249,14 @@ class Ui_MainWindow(object):
         conn.close()
 
 
+         # Clear the form data
+        self.tableWidget.clearContents()  # Clear table contents
+        
+        
+
+# def clear_radio_buttons(self):
+#         self.add_radio_button.setChecked(False)
+#         self.subtract_radio_button.setChecked(False)
 
 
 
