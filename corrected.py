@@ -9,8 +9,62 @@
 
 
 from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtWidgets import QComboBox, QItemDelegate
+from PyQt5.QtWidgets import QComboBox, QItemDelegate, QAction, QDialog
 import psycopg2
+
+
+# class AddItemWindow(QDialog):
+#     def __init__(self):
+#         super().__init__()
+#         self.setWindowTitle("Add New Item")
+#         self.resize(300, 200)
+
+#         self.stock_combo_box = stock_combo_box  # Store the stock_combo_box reference
+
+#         layout = QtWidgets.QVBoxLayout()
+
+#         self.item_name_label = QtWidgets.QLabel("Item Name:")
+#         self.item_name_input = QtWidgets.QLineEdit()
+#         layout.addWidget(self.item_name_label)
+#         layout.addWidget(self.item_name_input)
+
+#         self.add_button = QtWidgets.QPushButton("Add")
+#         self.add_button.clicked.connect(self.add_item)
+#         layout.addWidget(self.add_button)
+
+#         self.setLayout(layout)
+
+#     def add_item(self):
+#         new_item_name = self.item_name_input.text()
+
+#         if new_item_name:
+#             # Connect to PostgreSQL database
+#             conn = psycopg2.connect(
+#                 dbname="inventory",
+#                 user="postgres",
+#                 password="briankihiakiama",
+#                 host="localhost",
+#                 port="5432"
+#             )
+#             cur = conn.cursor()
+
+#             try:
+#                 # Insert the new item into the 'item' table
+#                 cur.execute("INSERT INTO item (item_name) VALUES (%s)", (new_item_name,))
+#                 conn.commit()
+#                 self.stock_combo_box.addItem(new_item_name)
+#                 self.item_name_input.clear()
+#                 print("Added:", new_item_name)
+#             except psycopg2.IntegrityError:
+#                 print("Item already exists")
+#                 # Handle integrity violation (item already exists)
+
+#             # Close connection
+#             conn.close()
+#         else:
+#             print("Please enter an item name")
+                
+
 
 
 class Ui_MainWindow(object):
@@ -64,6 +118,15 @@ class Ui_MainWindow(object):
         self.statusbar.setObjectName("statusbar")
         MainWindow.setStatusBar(self.statusbar)
 
+
+          # Create a menu action to open the Add Item window
+        self.menu_action = QAction("Add Item", MainWindow)
+        self.menu_action.triggered.connect(self.open_add_item_window)
+        self.menu = self.menubar.addMenu("Stock")
+        self.menu.addAction(self.menu_action)
+
+
+
         self.retranslateUi(MainWindow)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
@@ -83,10 +146,14 @@ class Ui_MainWindow(object):
         self.pushButton.setText(_translate("MainWindow", "Submit"))
 
 
+        # Initialize the combo box
+        self.stock_combo_box = QComboBox()
+        self.formLayout.setWidget(3, QtWidgets.QFormLayout.SpanningRole, self.stock_combo_box)
+        self.populate_combo_box()
 
          # Create a QComboBox for the stock column
-        self.stock_combo_box = QComboBox()
-        self.stock_combo_box.addItems(["Books", "LightBulb", "Flowers", "Phones","laptop"])  # Add your desired items here
+        # self.stock_combo_box = QComboBox()
+        # self.stock_combo_box.addItems(["Books", "LightBulb", "Flowers", "Phones","laptop"])  # Add your desired items here
 
          # Set the QComboBox as the item delegate for the stock column
         self.tableWidget.setItemDelegateForColumn(0, MyComboBoxDelegate(self.stock_combo_box))
@@ -94,7 +161,72 @@ class Ui_MainWindow(object):
 
         # self.pushButton.clicked.connect(self.submit_data)
 
+    def open_add_item_window(self):
+        new_item_name, ok = QtWidgets.QInputDialog.getText(None, 'Add New Item', 'Enter item name:')
+        if ok and new_item_name:
+            # Connect to PostgreSQL database
+            conn = psycopg2.connect(
+                dbname="inventory",
+                user="postgres",
+                password="briankihiakiama",
+                host="localhost",
+                port="5432"
+            )
+            cur = conn.cursor()
+
+            try:
+                # Insert the new item into the 'item' table
+                cur.execute("INSERT INTO item (item_name) VALUES (%s)", (new_item_name,))
+                conn.commit()
+                self.stock_combo_box.addItem(new_item_name)
+                print("Added:", new_item_name)
+            except psycopg2.IntegrityError:
+                print("Item already exists")
+                # Handle integrity violation (item already exists)
+
+            # Close connection
+            conn.close()
+
+    # def open_add_item_window(self):
+    #     self.add_item_window = AddItemWindow()
+    #     self.add_item_window.exec_()
     
+
+    def populate_combo_box(self):
+    # Connect to PostgreSQL database
+        conn = psycopg2.connect(
+            dbname="inventory",
+            user="postgres",
+            password="briankihiakiama",
+            host="localhost",
+            port="5432"
+        )
+        cur = conn.cursor()
+
+        # Check if the table 'item' exists
+        cur.execute("SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'item')")
+        table_exists = cur.fetchone()[0]
+
+        # If the 'item' table doesn't exist, create it
+        if not table_exists:
+            cur.execute("""
+                CREATE TABLE item (
+                    id SERIAL PRIMARY KEY,
+                    item_name VARCHAR(255) UNIQUE
+                )
+            """)
+            conn.commit()
+
+        # Fetch items from the 'item' table
+        cur.execute("SELECT item_name FROM item")
+        items = cur.fetchall()
+        self.stock_combo_box.clear()
+        for item in items:
+            self.stock_combo_box.addItem(item[0])
+
+        # Close connection
+        conn.close()
+
 
 
     def submit_data(self):
