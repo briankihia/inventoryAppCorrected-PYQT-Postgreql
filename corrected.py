@@ -9,8 +9,9 @@
 
 
 from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtWidgets import QComboBox, QItemDelegate, QAction, QDialog
+from PyQt5.QtWidgets import QComboBox, QItemDelegate, QAction, QDialog, QPushButton
 import psycopg2
+from openpyxl import Workbook
 
 
 # class AddItemWindow(QDialog):
@@ -125,7 +126,15 @@ class Ui_MainWindow(object):
         self.menu = self.menubar.addMenu("Stock")
         self.menu.addAction(self.menu_action)
 
+         # Create a QAction for exporting to Excel
+        self.export_action = QAction("Export to Excel", MainWindow)
+        self.export_action.triggered.connect(self.export_to_excel)
 
+        # Add the export action to the "File" menu
+        self.file_menu = self.menubar.addMenu("File_Transfer")
+        self.file_menu.addAction(self.export_action)
+
+        
 
         self.retranslateUi(MainWindow)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
@@ -151,6 +160,12 @@ class Ui_MainWindow(object):
         self.formLayout.setWidget(3, QtWidgets.QFormLayout.SpanningRole, self.stock_combo_box)
         self.populate_combo_box()
 
+        # this button will be used to create an excel sheet from database table
+
+        # self.btn_export = QPushButton("Export to Excel", self.centralwidget)
+        # self.btn_export.setGeometry(150, 80, 120, 40)
+        # self.btn_export.clicked.connect(self.export_to_excel)
+
          # Create a QComboBox for the stock column
         # self.stock_combo_box = QComboBox()
         # self.stock_combo_box.addItems(["Books", "LightBulb", "Flowers", "Phones","laptop"])  # Add your desired items here
@@ -160,6 +175,50 @@ class Ui_MainWindow(object):
 
 
         # self.pushButton.clicked.connect(self.submit_data)
+
+
+        # now I add a function that is going to be used to produce an excel sheet from the database table that I choose
+
+    def export_to_excel(self):
+        try:
+            conn = psycopg2.connect(
+                dbname="inventory",
+                user="postgres",
+                password="briankihiakiama",
+                host="localhost",
+                port="5432"
+            )
+            cursor = conn.cursor()
+
+            # Execute your SQL query to fetch data from PostgreSQL table
+            cursor.execute("SELECT * FROM transactions")
+
+            # Fetch all rows
+            rows = cursor.fetchall()
+
+            # Create Excel workbook
+            wb = Workbook()
+            ws = wb.active
+
+            # Write data to Excel worksheet
+            for row_index, row in enumerate(rows):
+                for col_index, value in enumerate(row):
+                    ws.cell(row=row_index + 1, column=col_index + 1, value=str(value))
+
+            # Save Excel file
+            wb.save("exported_data.xlsx")
+
+            cursor.close()
+            conn.close()
+
+            print("Export to Excel completed successfully!")
+
+        except psycopg2.Error as e:
+            print("Error connecting to PostgreSQL:", e)
+
+
+
+
 
     def open_add_item_window(self):
         new_item_name, ok = QtWidgets.QInputDialog.getText(None, 'Add New Item', 'Enter item name:')
